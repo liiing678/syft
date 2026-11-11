@@ -497,7 +497,7 @@ func Test_collectFiles_refusedChainIsDropped(t *testing.T) {
 			fileComponent("WEB-INF/lib/a.jar"),
 			fileComponent("b.jar!/forged.jar", fileComponent("inner.txt")),
 		),
-	}, nil, s)
+	}, nil, s, map[string]any{})
 
 	var got []string
 	for c := range s.Artifacts.FileMetadata {

@@ -697,7 +697,7 @@ func formatSPDXExternalRefs(p pkg.Package) (refs []*spdx.PackageExternalReferenc
 
 func toRelationships(relationships []artifact.Relationship) (result []*spdx.Relationship) {
 	for _, r := range relationships {
-		exists, relationshipType, comment := lookupRelationship(r.Type)
+		exists, relationshipType, comment := lookupRelationship(r)
 
 		if !exists {
 			log.Debugf("unable to convert relationship to SPDX, dropping: %+v", r)
@@ -733,16 +733,16 @@ func isFileContainsPackage(r artifact.Relationship) bool {
 	return fromFile && toPkg && r.Type == artifact.ContainsRelationship
 }
 
-func lookupRelationship(ty artifact.RelationshipType) (bool, helpers.RelationshipType, string) {
-	switch ty {
+func lookupRelationship(r artifact.Relationship) (bool, helpers.RelationshipType, string) {
+	switch r.Type {
 	case artifact.ContainsRelationship:
 		return true, helpers.ContainsRelationship, ""
 	case artifact.DependencyOfRelationship:
 		return true, helpers.DependencyOfRelationship, ""
 	case artifact.OwnershipByFileOverlapRelationship:
-		return true, helpers.OtherRelationship, fmt.Sprintf("%s: indicates that the parent package claims ownership of a child package since the parent metadata indicates overlap with a location that a cataloger found the child package by", ty)
+		return true, helpers.OtherRelationship, fmt.Sprintf("%s: indicates that the parent package claims ownership of a child package since the parent metadata indicates overlap with a location that a cataloger found the child package by", r.Type)
 	case artifact.EvidentByRelationship:
-		return true, helpers.OtherRelationship, fmt.Sprintf("%s: indicates the package's existence is evident by the given file", ty)
+		return true, helpers.OtherRelationship, evidentByComment(r)
 	}
 	return false, "", ""
 }

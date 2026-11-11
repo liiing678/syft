@@ -36,17 +36,38 @@ func ToSyftModel(bom *cyclonedx.BOM) (*sbom.SBOM, error) {
 	}
 
 	if bom.Components != nil {
-		collectFiles(*bom.Components, nil, s)
+		collectFiles(*bom.Components, nil, s, idMap)
 	}
 
 	collectRelationships(bom, s, idMap)
+	s.Relationships = append(s.Relationships, DecodeRelationshipProperties(bom, idMap)...)
+	s.Relationships = dedupeRelationships(s.Relationships)
 
 	return s, nil
 }
 
+// dedupeRelationships removes identical edges so a document that carries the same relationship
+// both natively and as syft relationship properties decodes to one edge per endpoint pair.
+func dedupeRelationships(relationships []artifact.Relationship) []artifact.Relationship {
+	seen := make(map[string]bool, len(relationships))
+	out := relationships[:0]
+	for _, r := range relationships {
+		if r.From == nil || r.To == nil {
+			continue
+		}
+		key := string(r.Type) + "|" + string(r.From.ID()) + "|" + string(r.To.ID())
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, r)
+	}
+	return out
+}
+
 // collectFiles decodes file components, named relative to the scan root; a file component nested in
 // another is an entry of that archive.
-func collectFiles(components []cyclonedx.Component, container *file.Coordinates, s *sbom.SBOM) {
+func collectFiles(components []cyclonedx.Component, container *file.Coordinates, s *sbom.SBOM, idMap map[string]any) {
 	for i := range components {
 		component := &components[i]
 		var coordinates *file.Coordinates
@@ -72,9 +93,14 @@ func collectFiles(components []cyclonedx.Component, container *file.Coordinates,
 				}
 				s.Artifacts.FileDigests[c] = digests
 			}
+			if component.BOMRef != "" {
+				// file bom-refs are the coordinate IDs, which the relationship properties reference
+				idMap[component.BOMRef] = c
+				idMap[string(c.ID())] = c
+			}
 		}
 		if component.Components != nil {
-			collectFiles(*component.Components, coordinates, s)
+			collectFiles(*component.Components, coordinates, s, idMap)
 		}
 	}
 }

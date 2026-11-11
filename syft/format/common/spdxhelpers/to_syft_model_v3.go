@@ -456,11 +456,15 @@ func v3collectDocRelationships(spdxMap ptrMap[any], doc *spdx.Document) (out []a
 				}
 			}
 			if typ != "" && to != nil {
-				out = append(out, artifact.Relationship{
+				rel := artifact.Relationship{
 					From: from,
 					To:   to,
 					Type: typ,
-				})
+				}
+				if typ == artifact.EvidentByRelationship {
+					rel.Data = evidentByData(r.GetComment())
+				}
+				out = append(out, rel)
 			}
 		}
 	}

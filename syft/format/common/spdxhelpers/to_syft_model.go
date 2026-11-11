@@ -598,11 +598,15 @@ func collectDocRelationships(spdxIDMap map[string]any, doc *spdx.Document) (out 
 			}
 		}
 		if typ != "" && to != nil {
-			out = append(out, artifact.Relationship{
+			rel := artifact.Relationship{
 				From: from,
 				To:   to,
 				Type: typ,
-			})
+			}
+			if typ == artifact.EvidentByRelationship {
+				rel.Data = evidentByData(r.RelationshipComment)
+			}
+			out = append(out, rel)
 		}
 	}
 	return out

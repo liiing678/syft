@@ -373,6 +373,38 @@ func Test_toSyftRelationships(t *testing.T) {
 								ElementRefID: toSPDXID(loc1),
 							},
 							Relationship:        spdx.RelationshipOther,
+							RelationshipComment: "evident-by: indicates the package's existence is evident by the given file; evidence:primary",
+						},
+					},
+				},
+			},
+			want: []artifact.Relationship{
+				{
+					From: pkg1,
+					To:   loc1,
+					Type: artifact.EvidentByRelationship,
+					Data: map[string]string{"kind": "primary"},
+				},
+			},
+		},
+		{
+			name: "evident-by relationship without explicit evidence kind recovers as supporting",
+			args: args{
+				spdxIDMap: map[string]any{
+					string(toSPDXID(pkg1)): pkg1,
+					string(toSPDXID(loc1)): loc1,
+				},
+				doc: &spdx.Document{
+					Relationships: []*spdx.Relationship{
+						{
+							RefA: common.DocElementID{
+								ElementRefID: toSPDXID(pkg1),
+							},
+							RefB: common.DocElementID{
+								ElementRefID: toSPDXID(loc1),
+							},
+							Relationship: spdx.RelationshipOther,
+							// legacy comment written before evidence categories existed
 							RelationshipComment: "evident-by: indicates the package's existence is evident by the given file",
 						},
 					},
@@ -383,6 +415,7 @@ func Test_toSyftRelationships(t *testing.T) {
 					From: pkg1,
 					To:   loc1,
 					Type: artifact.EvidentByRelationship,
+					Data: map[string]string{"kind": "supporting"},
 				},
 			},
 		},

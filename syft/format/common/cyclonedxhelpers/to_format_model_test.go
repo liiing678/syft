@@ -114,7 +114,7 @@ func Test_relationships(t *testing.T) {
 			},
 		},
 		{
-			name: "package contains relationships not output",
+			name: "package contains relationships stay out of dependencies and move to bom properties",
 			sbom: sbom.SBOM{
 				Artifacts: sbom.Artifacts{
 					Packages: pkg.NewCollection(p1, p2, p3),

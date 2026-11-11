@@ -723,39 +723,51 @@ func Test_toFileTypes(t *testing.T) {
 func Test_lookupRelationship(t *testing.T) {
 
 	tests := []struct {
-		input   artifact.RelationshipType
+		name    string
+		input   artifact.Relationship
 		exists  bool
 		ty      helpers.RelationshipType
 		comment string
 	}{
 		{
-			input:  artifact.ContainsRelationship,
+			name:   "contains",
+			input:  artifact.Relationship{Type: artifact.ContainsRelationship},
 			exists: true,
 			ty:     helpers.ContainsRelationship,
 		},
 		{
-			input:   artifact.OwnershipByFileOverlapRelationship,
+			name:    "ownership-by-file-overlap",
+			input:   artifact.Relationship{Type: artifact.OwnershipByFileOverlapRelationship},
 			exists:  true,
 			ty:      helpers.OtherRelationship,
 			comment: "ownership-by-file-overlap: indicates that the parent package claims ownership of a child package since the parent metadata indicates overlap with a location that a cataloger found the child package by",
 		},
 		{
-			input:   artifact.EvidentByRelationship,
+			name:    "evident-by defaults to supporting",
+			input:   artifact.Relationship{Type: artifact.EvidentByRelationship},
 			exists:  true,
 			ty:      helpers.OtherRelationship,
-			comment: "evident-by: indicates the package's existence is evident by the given file",
+			comment: "evident-by: indicates the package's existence is evident by the given file; evidence:supporting",
 		},
 		{
-			input:  "made-up",
+			name:    "evident-by keeps primary kind",
+			input:   artifact.Relationship{Type: artifact.EvidentByRelationship, Data: map[string]string{"kind": "primary"}},
+			exists:  true,
+			ty:      helpers.OtherRelationship,
+			comment: "evident-by: indicates the package's existence is evident by the given file; evidence:primary",
+		},
+		{
+			name:   "unknown relationship is dropped",
+			input:  artifact.Relationship{Type: "made-up"},
 			exists: false,
 		},
 	}
 	for _, test := range tests {
-		t.Run(string(test.input), func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) {
 			exists, ty, comment := lookupRelationship(test.input)
-			assert.Equal(t, exists, test.exists)
-			assert.Equal(t, ty, test.ty)
-			assert.Equal(t, comment, test.comment)
+			assert.Equal(t, test.exists, exists)
+			assert.Equal(t, test.ty, ty)
+			assert.Equal(t, test.comment, comment)
 		})
 	}
 }

@@ -49,17 +49,34 @@ func ToFormatModel(s sbom.SBOM) *cyclonedx.BOM {
 	// Packages
 	packages := s.Artifacts.Packages.Sorted()
 	components := make([]cyclonedx.Component, len(packages))
+	bomRefs := make(map[artifact.ID]string, len(packages))
 	for i, p := range packages {
 		components[i] = helpers.EncodeComponent(p, s.Source.Supplier, locationSorter)
+		bomRefs[p.ID()] = components[i].BOMRef
 	}
 	components = append(components, toOSComponent(s.Artifacts.LinuxDistribution)...)
 
 	components = append(components, toFileComponents(s.Artifacts, entries, top)...)
 	cdxBOM.Components = &components
 
+	// file components use the coordinate ID as their bom-ref, so the relationship properties can
+	// resolve file endpoints the same way package endpoints do
+	for _, coordinate := range s.AllCoordinates() {
+		if id := coordinate.ID(); id != "" {
+			bomRefs[id] = string(id)
+		}
+	}
+
 	dependencies := toDependencies(s.Relationships)
 	if len(dependencies) > 0 {
 		cdxBOM.Dependencies = &dependencies
+	}
+
+	// Contains and EvidentBy edges have no native CycloneDX relationship type. They are carried as
+	// reversible BOM properties so consumers can trace a package back to the files (for example lock
+	// files) that evidence it; the encoder drops BOM properties for spec versions that predate them.
+	if relationshipProps := helpers.EncodeRelationshipProperties(s.Relationships, bomRefs); len(relationshipProps) > 0 {
+		cdxBOM.Properties = &relationshipProps
 	}
 
 	return cdxBOM

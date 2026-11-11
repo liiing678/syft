@@ -35,6 +35,12 @@ func (e Encoder) Encode(writer io.Writer, s sbom.SBOM) error {
 		// (see https://github.com/CycloneDX/cyclonedx-go/issues/291), so drop it rather than emit an invalid document
 		dropExternalReferenceType(bom.Components, cyclonedx.ERTypeSourceDistribution)
 	}
+	if e.version < cyclonedx.SpecVersion1_5 {
+		// BOM-level properties only exist from CycloneDX 1.5; the Contains and EvidentBy edges they
+		// carry have no native representation in earlier spec versions, so drop them rather than
+		// emit a property field the schema does not allow.
+		bom.Properties = nil
+	}
 	enc := cyclonedx.NewBOMEncoder(writer, e.format)
 	enc.SetPretty(e.pretty)
 	enc.SetEscapeHTML(false)
